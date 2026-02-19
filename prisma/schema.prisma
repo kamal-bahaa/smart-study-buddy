@@ -24,7 +24,6 @@ model User {
 model PdfDocument {
   id            Int           @id @default(autoincrement())
   fileName      String
-  fileUrl       String?
   extractedText String        @db.Text
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
