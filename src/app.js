@@ -1,13 +1,14 @@
 import express from 'express';
 import authRoutes from './modules/auth/auth.routes.js';
+import pdfRoutes from './modules/pdf/pdf.routes.js';          // ← new
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
 
 // ── Global middleware ─────────────────────────────────────────────────────────
-app.use(express.json());                 
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
@@ -16,7 +17,7 @@ app.get('/health', (_req, res) => {
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
-
+app.use('/api/pdfs', pdfRoutes);                               // ← new
 
 import { authenticate } from './middleware/authenticate.js';
 
