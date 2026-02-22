@@ -1,6 +1,6 @@
 import express from 'express';
 import authRoutes from './modules/auth/auth.routes.js';
-import pdfRoutes from './modules/pdf/pdf.routes.js';          // ← new
+import pdfRoutes from './modules/pdf/pdf.routes.js';          
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -17,7 +17,7 @@ app.get('/health', (_req, res) => {
 
 // ── API routes ────────────────────────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
-app.use('/api/pdfs', pdfRoutes);                               // ← new
+app.use('/api/pdfs', pdfRoutes);                              
 
 import { authenticate } from './middleware/authenticate.js';
 

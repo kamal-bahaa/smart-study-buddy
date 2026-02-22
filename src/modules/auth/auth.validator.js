@@ -41,7 +41,7 @@ export const validate = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const messages = errors.array().map((e) => e.msg);
-        return sendError(res, 400, messages[0]);   // return the first error message
+        return sendError(res, 400, messages[0]);  
     }
     next();
 };

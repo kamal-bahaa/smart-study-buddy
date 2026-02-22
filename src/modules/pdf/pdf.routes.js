@@ -5,7 +5,7 @@ import { uploadPdfController } from './pdf.controller.js';
 
 const router = Router();
 
-// POST /api/pdfs  — protected
+// POST /api/pdfs 
 router.post('/', authenticate, uploadPdf, uploadPdfController);
 
 export default router;

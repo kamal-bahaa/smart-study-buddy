@@ -2,10 +2,10 @@ import { processUploadedPdf } from './pdf.service.js';
 import { sendSuccess } from '../../utils/ApiResponse.js';
 
 // POST /api/pdfs
-export const uploadPdfController = (req, res, next) => {
+export const uploadPdfController = async (req, res, next) => {
     try {
-        const result = processUploadedPdf(req.file);
-        return sendSuccess(res, 200, 'PDF received and validated', result);
+        const result = await processUploadedPdf(req.file, req.user.userId);
+        return sendSuccess(res, 201, 'PDF uploaded and saved', result);
     } catch (err) {
         next(err);
     }

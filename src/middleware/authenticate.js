@@ -14,13 +14,14 @@ export const authenticate = (req, res, next) => {
         return sendError(res, 401, 'Access token required');
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(' ')[1]; // Bearer [accessToken]
 
     try {
         const payload = jwt.verify(token, env.JWT_SECRET);
         req.user = { userId: payload.userId };
         next();
-    } catch (err) {
+    } 
+    catch (err) {
         if (err.name === 'TokenExpiredError') {
             return sendError(res, 401, 'Access token has expired');
         }
