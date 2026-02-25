@@ -7,6 +7,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
 model User {
   id           Int           @id @default(autoincrement())
   email        String        @unique
@@ -15,26 +21,26 @@ model User {
   refreshToken String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  
+
   pdfs         PdfDocument[]
-  
+
   @@index([email])
 }
 
 model PdfDocument {
-  id            Int           @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   fileName      String
-  extractedText String        @db.Text
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  
+  extractedText String      @db.Text
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
   userId        Int
-  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   summaries     Summary[]
   flashcards    Flashcard[]
   quizzes       Quiz[]
-  
+
   @@index([userId])
   @@index([createdAt])
 }
@@ -43,35 +49,36 @@ model Summary {
   id        Int         @id @default(autoincrement())
   content   String      @db.Text
   createdAt DateTime    @default(now())
-  
+
   pdfId     Int
   pdf       PdfDocument @relation(fields: [pdfId], references: [id], onDelete: Cascade)
-  
+
   @@index([pdfId])
 }
 
 model Flashcard {
-  id        Int         @id @default(autoincrement())
-  front     String      @db.Text
-  back      String      @db.Text
-  createdAt DateTime    @default(now())
-  
-  pdfId     Int
-  pdf       PdfDocument @relation(fields: [pdfId], references: [id], onDelete: Cascade)
-  
+  id         Int         @id @default(autoincrement())
+  front      String      @db.Text
+  back       String      @db.Text
+  difficulty Difficulty  @default(easy)
+  createdAt  DateTime    @default(now())
+
+  pdfId      Int
+  pdf        PdfDocument @relation(fields: [pdfId], references: [id], onDelete: Cascade)
+
   @@index([pdfId])
 }
 
 model Quiz {
-  id        Int        @id @default(autoincrement())
-  title     String     @default("Quiz")
-  createdAt DateTime   @default(now())
-  
+  id        Int         @id @default(autoincrement())
+  title     String      @default("Quiz")
+  createdAt DateTime    @default(now())
+
   pdfId     Int
   pdf       PdfDocument @relation(fields: [pdfId], references: [id], onDelete: Cascade)
-  
+
   questions Question[]
-  
+
   @@index([pdfId])
   @@index([createdAt])
 }
@@ -81,9 +88,9 @@ model Question {
   text          String   @db.Text
   options       String[]
   correctAnswer String
-  
+
   quizId        Int
   quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  
+
   @@index([quizId])
 }
