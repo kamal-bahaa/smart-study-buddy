@@ -1,5 +1,6 @@
 import {
     generateFlashcards,
+    generateFlashcardsStream,
     getFlashcards,
     deleteFlashcard,
     updateFlashcard,
@@ -13,13 +14,20 @@ const parseId = (raw) => {
     return id;
 };
 
-// ─── Controllers ──────────────────────────────────────────────────────────────
-
-// POST /api/pdfs/:id/flashcards
+// POST /api/pdfs/:id/flashcards          — regular JSON response
 export const generateFlashcardsController = async (req, res, next) => {
     try {
         const result = await generateFlashcards(parseId(req.params.id), req.user.userId);
         return sendSuccess(res, 201, 'Flashcards generated successfully', result);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// GET /api/pdfs/:id/flashcards/stream    
+export const generateFlashcardsStreamController = async (req, res, next) => {
+    try {
+        await generateFlashcardsStream(parseId(req.params.id), req.user.userId, res);
     } catch (err) {
         next(err);
     }

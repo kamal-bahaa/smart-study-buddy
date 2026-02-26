@@ -9,6 +9,7 @@ import {
 } from './pdf.controller.js';
 import {
     generateFlashcardsController,
+    generateFlashcardsStreamController,
     getFlashcardsController,
 } from '../flashcard/flashcard.controller.js';
 import {
@@ -18,31 +19,21 @@ import {
 
 const router = Router();
 
-// All routes require authentication
 router.use(authenticate);
 
-// POST /api/pdfs              — upload & extract
+// PDF
 router.post('/', uploadPdf, uploadPdfController);
-
-// GET /api/pdfs               — list user's documents
 router.get('/', listDocumentsController);
-
-// GET /api/pdfs/:id           — get single document
 router.get('/:id', getDocumentController);
-
-// DELETE /api/pdfs/:id        — delete document
 router.delete('/:id', deleteDocumentController);
 
-// POST /api/pdfs/:id/flashcards — generate & save flashcards
+// Flashcards
 router.post('/:id/flashcards', generateFlashcardsController);
-
-// GET /api/pdfs/:id/flashcards  — retrieve flashcards
 router.get('/:id/flashcards', getFlashcardsController);
+router.post('/:id/flashcards/stream', generateFlashcardsStreamController);
 
-// POST /api/pdfs/:id/summary  — generate & save summary
+// Summary
 router.post('/:id/summary', generateSummaryController);
-
-// GET /api/pdfs/:id/summary   — retrieve summary
 router.get('/:id/summary', getSummaryController);
 
 export default router;
