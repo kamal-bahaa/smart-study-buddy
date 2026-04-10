@@ -5,7 +5,9 @@ const required = [
     'FLASHCARD_SERVICE_URL',
     'GEMINI_API_KEY',
     'GROQ_API_KEY',
+    'MCQ_SERVICE_URL',      
 ];
+
 for (const key of required) {
     if (!process.env[key]) {
         throw new Error(`Missing required environment variable: ${key}`);
@@ -31,8 +33,8 @@ export const env = {
 
     // AI Services
     FLASHCARD_SERVICE_URL: process.env.FLASHCARD_SERVICE_URL,
+    MCQ_SERVICE_URL: process.env.MCQ_SERVICE_URL,         
 
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-
     GROQ_API_KEY: process.env.GROQ_API_KEY,
 };

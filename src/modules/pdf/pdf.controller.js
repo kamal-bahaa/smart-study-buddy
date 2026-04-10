@@ -1,5 +1,6 @@
 import * as pdfService from './pdf.service.js';
 import { sendSuccess } from '../../utils/ApiResponse.js';
+import { ApiError } from '../../utils/ApiError.js';
 
 // POST /api/pdfs
 export const uploadPdfController = async (req, res, next) => {
@@ -11,7 +12,7 @@ export const uploadPdfController = async (req, res, next) => {
     }
 };
 
-// GET /api/pdfs
+// GET /api/pdfs 
 export const listDocumentsController = async (req, res, next) => {
     try {
         const documents = await pdfService.getUserDocuments(req.user.userId);
@@ -29,6 +30,19 @@ export const getDocumentController = async (req, res, next) => {
 
         const document = await pdfService.getDocumentById(id, req.user.userId);
         return sendSuccess(res, 200, 'Document retrieved', document);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// GET /api/pdfs/:id/text 
+export const getDocumentTextController = async (req, res, next) => {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return next(ApiError.badRequest('Invalid document ID'));
+
+        const data = await pdfService.getDocumentText(id, req.user.userId);
+        return sendSuccess(res, 200, 'Document text retrieved', data);
     } catch (err) {
         next(err);
     }

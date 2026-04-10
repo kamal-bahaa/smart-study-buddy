@@ -5,7 +5,7 @@ import { ApiError } from '../../utils/ApiError.js';
 
 const AI_SERVICE_URL = 'http://localhost:8000/extract';
 
-// ─── Shared select ────
+// ─── Shared select ────────────────────────────────────────────────────────────
 const METADATA_SELECT = {
     id: true,
     fileName: true,
@@ -18,7 +18,6 @@ const METADATA_SELECT = {
 export const processUploadedPdf = async (file, userId) => {
     if (!file) throw ApiError.badRequest('No PDF file provided');
 
-    // Send to AI service
     const form = new FormData();
     form.append('file', file.buffer, {
         filename: file.originalname,
@@ -40,7 +39,6 @@ export const processUploadedPdf = async (file, userId) => {
         );
     }
 
-    // Persist
     try {
         return await prisma.pdfDocument.create({
             data: {
@@ -65,27 +63,96 @@ export const getUserDocuments = async (userId) => {
     });
 };
 
-// ─── Get single document (ownership enforced) ─────────────────────────────────
+// ─── Get single document with full details ────────────────────────────────────
 
 export const getDocumentById = async (id, userId) => {
     const document = await prisma.pdfDocument.findUnique({
         where: { id },
-        select: { ...METADATA_SELECT, userId: true },
+        select: {
+            ...METADATA_SELECT,
+            userId: true,
+
+            flashcards: {
+                select: {
+                    id: true,
+                    front: true,
+                    back: true,
+                    difficulty: true,
+                    createdAt: true,
+                },
+                orderBy: { id: 'asc' },
+            },
+
+            quizzes: {
+                select: {
+                    id: true,
+                    title: true,
+                    createdAt: true,
+                    questions: {
+                        select: {
+                            id: true,
+                            text: true,
+                            options: true,
+                            correctAnswer: true,
+                        },
+                    },
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+            },
+
+            summaries: {
+                select: { id: true, content: true, createdAt: true },
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+            },
+        },
     });
 
     if (!document || document.userId !== userId) {
         throw ApiError.notFound('Document not found');
     }
 
-    // Strip internal userId before returning
-    const { userId: _, ...metadata } = document;
-    return metadata;
+    const { userId: _, quizzes, summaries, flashcards, ...metadata } = document;
+
+    return {
+        ...metadata,
+        flashcardCount: flashcards.length,
+        flashcards,
+        quiz: quizzes[0]
+            ? {
+                id: quizzes[0].id,
+                title: quizzes[0].title,
+                createdAt: quizzes[0].createdAt,
+                questionCount: quizzes[0].questions.length,
+                questions: quizzes[0].questions,
+            }
+            : null,
+        summary: summaries[0] ?? null,
+    };
 };
 
-// ─── Delete document (ownership enforced) ─────────────────────────────────────
+
+
+export const getDocumentText = async (id, userId) => {
+    const document = await prisma.pdfDocument.findUnique({
+        where: { id },
+        select: {
+            userId: true,
+            extractedText: true,
+        },
+    });
+
+    if (!document || document.userId !== userId) {
+        throw ApiError.notFound('Document not found');
+    }
+
+    return { extractedText: document.extractedText };
+};
+
+// ─── Delete document ─────────────────────────────────────
 
 export const deleteDocument = async (id, userId) => {
-    // Verify ownership first
     const document = await prisma.pdfDocument.findUnique({
         where: { id },
         select: { userId: true },
@@ -95,6 +162,5 @@ export const deleteDocument = async (id, userId) => {
         throw ApiError.notFound('Document not found');
     }
 
-    // Cascade in schema handles summaries, flashcards, quizzes
     await prisma.pdfDocument.delete({ where: { id } });
 };

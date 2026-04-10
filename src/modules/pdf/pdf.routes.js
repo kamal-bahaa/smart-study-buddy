@@ -5,35 +5,30 @@ import {
     uploadPdfController,
     listDocumentsController,
     getDocumentController,
+    getDocumentTextController,
     deleteDocumentController,
 } from './pdf.controller.js';
+
 import {
     generateFlashcardsController,
     generateFlashcardsStreamController,
     getFlashcardsController,
 } from '../flashcard/flashcard.controller.js';
-import {
-    generateSummaryController,
-    getSummaryController,
-} from '../summary/summary.controller.js';
 
 const router = Router();
 
 router.use(authenticate);
 
-// PDF
+// ── PDF CRUD ──────────────────────────────────────────────────────────────────
 router.post('/', uploadPdf, uploadPdfController);
 router.get('/', listDocumentsController);
 router.get('/:id', getDocumentController);
+router.get('/:id/text', getDocumentTextController);   
 router.delete('/:id', deleteDocumentController);
 
-// Flashcards
+// ── Flashcards ────────────────────────────────────────────────────────────────
 router.post('/:id/flashcards', generateFlashcardsController);
 router.get('/:id/flashcards', getFlashcardsController);
 router.post('/:id/flashcards/stream', generateFlashcardsStreamController);
-
-// Summary
-router.post('/:id/summary', generateSummaryController);
-router.get('/:id/summary', getSummaryController);
 
 export default router;
