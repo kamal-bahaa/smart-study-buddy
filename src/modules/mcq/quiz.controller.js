@@ -1,4 +1,4 @@
-import { generateQuiz, getQuiz } from './quiz.service.js';
+import { generateQuiz, generateQuizStream, getQuiz } from './quiz.service.js';
 import { sendSuccess } from '../../utils/ApiResponse.js';
 import { ApiError } from '../../utils/ApiError.js';
 
@@ -8,11 +8,20 @@ const parseId = (raw) => {
     return id;
 };
 
-// POST /api/pdfs/:id/quiz
+// POST /api/pdfs/:id/quiz          
 export const generateQuizController = async (req, res, next) => {
     try {
         const result = await generateQuiz(parseId(req.params.id), req.user.userId);
         return sendSuccess(res, 201, 'Quiz generated successfully', result);
+    } catch (err) {
+        next(err);
+    }
+};
+
+// GET /api/pdfs/:id/quiz/stream    — SSE streaming response
+export const generateQuizStreamController = async (req, res, next) => {
+    try {
+        await generateQuizStream(parseId(req.params.id), req.user.userId, res);
     } catch (err) {
         next(err);
     }

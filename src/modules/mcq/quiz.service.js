@@ -6,7 +6,7 @@ import { env } from '../../config/env.js';
 const MCQ_SERVICE_URL = env.MCQ_SERVICE_URL;
 const REQUEST_TIMEOUT = 300000; // 5 min
 
-// ─── Generate ─────────────────────────────────────────────────────────────────
+// ─── Generate (original — kept for backward compatibility) ────────────────────
 
 export const generateQuiz = async (pdfId, userId) => {
 
@@ -107,6 +107,185 @@ export const generateQuiz = async (pdfId, userId) => {
         questionCount: quiz.questions.length,
         questions: quiz.questions,
     };
+};
+
+
+
+// ─── Generate with SSE Streaming ─────────────────────────────────────────────
+
+
+export const generateQuizStream = async (pdfId, userId, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const sseError = (message) => {
+        res.write(`event: error\ndata: ${JSON.stringify({ message })}\n\n`);
+        res.end();
+    };
+
+    const document = await prisma.pdfDocument.findUnique({
+        where: { id: pdfId },
+        select: {
+            id: true,
+            fileName: true,
+            extractedText: true,
+            userId: true,
+            createdAt: true,
+            updatedAt: true,
+        },
+    });
+
+    if (!document || document.userId !== userId) {
+        return sseError('Document not found');
+    }
+
+    if (!document.extractedText?.trim()) {
+        return sseError('Document has no extracted text to generate a quiz from');
+    }
+
+    const cleanText = document.extractedText
+        .replace(/\u0000/g, '')
+        .replace(/[\r\n\t]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const { extractedText: _, userId: __, ...docMeta } = document;
+
+    let fastApiResponse;
+    try {
+        fastApiResponse = await axios.post(
+            `${MCQ_SERVICE_URL}/generate-mcqs-stream`,
+            { context: cleanText, total_length: cleanText.length, limit: 20 },
+            {
+                timeout: REQUEST_TIMEOUT,
+                responseType: 'stream',          
+                headers: { Accept: 'text/event-stream' },
+            },
+        );
+    } catch (error) {
+        console.error('[MCQ Stream] Failed to connect to FastAPI:', error.message);
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            return sseError('MCQ service is unreachable. Please try again later.');
+        }
+        return sseError('MCQ service failed to start streaming.');
+    }
+
+    const allMcqs = [];         
+    const seen = new Set();   
+    let buffer = '';          
+
+    const stream = fastApiResponse.data;  
+
+    stream.on('data', (chunk) => {
+        buffer += chunk.toString('utf8');
+
+        const blocks = buffer.split('\n\n');
+        buffer = blocks.pop(); 
+
+        for (const block of blocks) {
+            if (!block.trim()) continue;
+
+            let eventType = 'message';
+            let dataLine = '';
+
+            for (const line of block.split('\n')) {
+                if (line.startsWith('event:')) {
+                    eventType = line.slice(6).trim();
+                } else if (line.startsWith('data:')) {
+                    dataLine = line.slice(5).trim();
+                }
+            }
+
+            if (!dataLine) continue;
+
+            let payload;
+            try {
+                payload = JSON.parse(dataLine);
+            } catch {
+                console.warn('[MCQ Stream] Could not parse SSE data:', dataLine);
+                continue;
+            }
+
+            if (eventType === 'start') {
+                res.write(`event: start\ndata: ${JSON.stringify({
+                    totalChunks: payload.totalChunks,
+                    fileName: document.fileName,
+                })}\n\n`);
+
+            } else if (eventType === 'mcqs') {
+                const batch = (payload.mcqs ?? []).filter(({ question }) => {
+                    if (seen.has(question)) return false;
+                    seen.add(question);
+                    return true;
+                }).map(({ question, options, correct_answer }) => ({
+                    text: question,
+                    options: [options.A, options.B, options.C, options.D],
+                    correctAnswer: correct_answer,
+                }));
+
+                if (batch.length > 0) {
+                    allMcqs.push(...batch);
+                    res.write(`event: mcqs\ndata: ${JSON.stringify({
+                        chunk: payload.chunk,
+                        totalChunks: payload.totalChunks,
+                        mcqs: batch,
+                    })}\n\n`);
+                }
+
+            } else if (eventType === 'error') {
+                console.error('[MCQ Stream] FastAPI error event:', payload.message);
+                res.write(`event: error\ndata: ${JSON.stringify({ message: payload.message })}\n\n`);
+            }
+        }
+    });
+
+    stream.on('error', (err) => {
+        console.error('[MCQ Stream] Stream error:', err.message);
+        res.write(`event: error\ndata: ${JSON.stringify({ message: 'Stream connection lost' })}\n\n`);
+        res.end();
+    });
+
+    stream.on('end', async () => {
+        if (allMcqs.length === 0) {
+            res.write(`event: error\ndata: ${JSON.stringify({ message: 'AI service returned no questions' })}\n\n`);
+            res.end();
+            return;
+        }
+
+        try {
+            const quiz = await prisma.quiz.create({
+                data: {
+                    pdfId,
+                    questions: {
+                        createMany: {
+                            data: allMcqs.map(({ text, options, correctAnswer }) => ({
+                                text,
+                                options,
+                                correctAnswer,
+                            })),
+                        },
+                    },
+                },
+                select: { id: true },
+            });
+
+            console.log(`[MCQ Stream] pdfId=${pdfId} → saved ${allMcqs.length} MCQs, quizId=${quiz.id}`);
+
+            res.write(`event: done\ndata: ${JSON.stringify({
+                document: docMeta,
+                quizId: quiz.id,
+                questionCount: allMcqs.length,
+            })}\n\n`);
+
+        } catch (dbErr) {
+            console.error('[MCQ Stream] DB save failed:', dbErr.message);
+            res.write(`event: error\ndata: ${JSON.stringify({ message: 'Failed to save quiz to database' })}\n\n`);
+        }
+
+        res.end();
+    });
 };
 
 // ─── Get ──────────────────────────────────────────────────────────────────────
