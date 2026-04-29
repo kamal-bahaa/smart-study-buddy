@@ -7,7 +7,7 @@ import flashcardRoutes from './modules/flashcard/flashcard.routes.js';
 import quizRoutes from './modules/mcq/quiz.routes.js';
 import summaryRoutes from './modules/summary/summary.routes.js';
 import historyRoutes from './modules/HistoryFeature/history.routes.js';  
-
+import translationRoutes from './modules/translation/translation.routes.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -30,6 +30,7 @@ app.use('/api/pdfs/:id/summary', summaryRoutes);
 app.use('/api/flashcards', flashcardRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/history', historyRoutes);        
+app.use('/api/translate', translationRoutes);
 
 // ── Errors ────────────────────────────────────────
 app.use(notFound);
