@@ -1,9 +1,8 @@
 import axios from 'axios';
 import prisma from '../../prisma/client.js';
 import { ApiError } from '../../utils/ApiError.js';
-import { env } from '../../config/env.js';
+import { getServiceUrl } from '../../config/service.registry.js';
 
-const AI_SERVICE_URL = env.FLASHCARD_SERVICE_URL;
 const CHUNK_SIZE = 2000;
 const REQUEST_TIMEOUT = 120000;
 
@@ -55,13 +54,20 @@ export const generateFlashcardsStream = async (pdfId, userId, res) => {
 
     generationLocks.add(pdfId);
 
-    // SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
     try {
+        // ── Get URL from registry (set by Colab at startup) ──────────────────
+        const AI_SERVICE_URL = getServiceUrl('flashcard');
+        if (!AI_SERVICE_URL) {
+            res.write(`event: error\ndata: ${JSON.stringify({ message: 'Flashcard service is not running. Please start the Colab notebook.' })}\n\n`);
+            res.end();
+            return;
+        }
+
         const document = await prisma.pdfDocument.findUnique({
             where: { id: pdfId },
             select: { id: true, fileName: true, extractedText: true, userId: true, createdAt: true, updatedAt: true },
@@ -105,7 +111,6 @@ export const generateFlashcardsStream = async (pdfId, userId, res) => {
 
                     allFlashcards.push(...newFlashcards);
 
-                    // Stream new flashcards to Flutter immediately
                     res.write(`event: flashcards\ndata: ${JSON.stringify({
                         chunk: i + 1,
                         totalChunks: chunks.length,
@@ -123,7 +128,6 @@ export const generateFlashcardsStream = async (pdfId, userId, res) => {
             return;
         }
 
-        // Save to DB
         await prisma.$transaction([
             prisma.flashcard.deleteMany({ where: { pdfId } }),
             prisma.flashcard.createMany({
@@ -135,7 +139,6 @@ export const generateFlashcardsStream = async (pdfId, userId, res) => {
 
         const { extractedText: _, userId: __, ...metadata } = document;
 
-        // Send done event
         res.write(`event: done\ndata: ${JSON.stringify({ document: metadata, count: allFlashcards.length })}\n\n`);
         res.end();
 
@@ -144,11 +147,17 @@ export const generateFlashcardsStream = async (pdfId, userId, res) => {
     }
 };
 
-// ─── Generate (regular — keep for backward compatibility) ─────────────────────
+// ─── Generate (regular) ───────────────────────────────────────────────────────
 
 export const generateFlashcards = async (pdfId, userId) => {
     if (generationLocks.has(pdfId)) {
         throw ApiError.conflict('Flashcard generation is already in progress for this document. Please wait.');
+    }
+
+    // ── Get URL from registry ─────────────────────────────────────────────────
+    const AI_SERVICE_URL = getServiceUrl('flashcard');
+    if (!AI_SERVICE_URL) {
+        throw ApiError.internal('Flashcard service is not running. Please start the Colab notebook.');
     }
 
     generationLocks.add(pdfId);

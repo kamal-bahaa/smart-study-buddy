@@ -8,6 +8,8 @@ import quizRoutes from './modules/mcq/quiz.routes.js';
 import summaryRoutes from './modules/summary/summary.routes.js';
 import historyRoutes from './modules/HistoryFeature/history.routes.js';  
 import translationRoutes from './modules/translation/translation.routes.js';
+import registryRoutes from './modules/internal/registry.routes.js';
+
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
@@ -31,7 +33,7 @@ app.use('/api/flashcards', flashcardRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/history', historyRoutes);        
 app.use('/api/translate', translationRoutes);
-
+app.use('/api/internal', registryRoutes);
 // ── Errors ────────────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);

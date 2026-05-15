@@ -2,10 +2,9 @@ const required = [
     'DATABASE_URL',
     'JWT_SECRET',
     'JWT_REFRESH_SECRET',
-    'FLASHCARD_SERVICE_URL',
     'GEMINI_API_KEY',
     'GROQ_API_KEY',
-    'MCQ_SERVICE_URL',      
+    'INTERNAL_SECRET',
 ];
 
 for (const key of required) {
@@ -31,10 +30,12 @@ export const env = {
     // Bcrypt
     BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
 
-    // AI Services
-    FLASHCARD_SERVICE_URL: process.env.FLASHCARD_SERVICE_URL,
-    MCQ_SERVICE_URL: process.env.MCQ_SERVICE_URL,         
+    // AI Services (optional — from registry or env)
+    FLASHCARD_SERVICE_URL: process.env.FLASHCARD_SERVICE_URL ?? null,
+    MCQ_SERVICE_URL: process.env.MCQ_SERVICE_URL ?? null,
 
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     GROQ_API_KEY: process.env.GROQ_API_KEY,
+
+    INTERNAL_SECRET: process.env.INTERNAL_SECRET,
 };
