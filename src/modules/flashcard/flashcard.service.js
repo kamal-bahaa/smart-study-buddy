@@ -97,7 +97,7 @@ export const generateFlashcardsStream = async (pdfId, userId, res) => {
 
             try {
                 const response = await axios.post(
-                    AI_SERVICE_URL,
+                    `${AI_SERVICE_URL}/generate-flashcard`,   
                     { context: chunk, total_length: cleanText.length },
                     { timeout: REQUEST_TIMEOUT },
                 );
@@ -183,7 +183,7 @@ export const generateFlashcards = async (pdfId, userId) => {
             const chunk = chunks[i];
             try {
                 const response = await axios.post(
-                    AI_SERVICE_URL,
+                    `${AI_SERVICE_URL}/generate-flashcard`,   
                     { context: chunk, total_length: cleanText.length },
                     { timeout: REQUEST_TIMEOUT },
                 );

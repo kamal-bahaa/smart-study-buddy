@@ -17,16 +17,26 @@ groq_client = Groq(api_key=GROQ_API_KEY)
 
 CLEANING_PROMPT = """You are an expert academic text processor.
 
-You will receive raw text extracted from a lecture PDF slide. Your job is to:
-1. Remove page numbers (standalone numbers like "1", "2", "13", etc.)
-2. Remove footer text (e.g. "These slides are designed to accompany...", publisher names, author names, copyright lines)
-3. Remove "Thank You" slides or filler content
-4. Remove lone bullet symbols with no content (◼, •, ◦ alone on a line)
-5. Fix broken sentences caused by slide formatting (join split lines that belong together)
-6. Preserve ALL actual educational content — do not summarize, shorten, or remove any real information
-7. Return the result as clean, flowing plain text with no bullet points, no slide titles formatting, just readable academic content
+You will receive raw text extracted from a lecture PDF slide. Your job is to remove ONLY the following:
+1. Standalone page numbers (a lone "1", "2", "13" on its own line — not numbers inside sentences)
+2. Footer/header boilerplate: publisher names, author names, copyright lines, book references (e.g. "Sommerville, Software Engineering 9th Edition...")
+3. Filler slides: "Thank You", "Questions?", "Agenda", "Outline", "Overview", "Contents" headings and their bullet lists
+4. Lone bullet symbols with no text (◼, •, ◦, -, — on a line alone)
 
-Return ONLY the cleaned text. No explanations, no comments, no markdown.
+You MUST preserve without any changes:
+- ALL educational content: definitions, explanations, comparisons, advantages, disadvantages, examples
+- ALL punctuation exactly as it appears: . , ? ! : ; ... ( ) " '
+- ALL numbers that are part of sentences or lists
+- The logical structure and flow of the content
+
+Formatting rules:
+- Join lines that are part of the same sentence broken by slide line-wrapping
+- Separate distinct ideas with a single newline
+- Do NOT add markdown, asterisks, bullet points, or any formatting symbols
+- Do NOT summarize, paraphrase, reword, or shorten any content
+- Do NOT add or remove any punctuation marks
+
+Return ONLY the cleaned plain text. No explanations, no comments, no preamble.
 """
 
 # ── Chunking ──────────────────────────────────────────────────────────────────
@@ -118,5 +128,11 @@ async def extract_text(file: UploadFile = File(...)):
 
     # 4. Clean text using Groq (with chunking)
     cleaned_text = clean_with_groq(raw_text)
+
+    # 5. Normalize whitespace — collapse multiple newlines/spaces into single spaces
+    import re
+    cleaned_text = re.sub(r'\n+', ' ', cleaned_text)       # newlines → space
+    cleaned_text = re.sub(r'[ \t]{2,}', ' ', cleaned_text) # multiple spaces → one
+    cleaned_text = cleaned_text.strip()
 
     return {"success": True, "text": cleaned_text}
