@@ -5,8 +5,8 @@
  */
 
 const registry = {
-    flashcard: process.env.FLASHCARD_SERVICE_URL ?? null,
-    mcq: process.env.MCQ_SERVICE_URL ?? null,
+    flashcard:null,
+    mcq:null,
 };
 
 export const registerService = (name, url) => {

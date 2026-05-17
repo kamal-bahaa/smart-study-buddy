@@ -31,8 +31,8 @@ export const env = {
     BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS || '12', 10),
 
     // AI Services (optional — from registry or env)
-    FLASHCARD_SERVICE_URL: process.env.FLASHCARD_SERVICE_URL ?? null,
-    MCQ_SERVICE_URL: process.env.MCQ_SERVICE_URL ?? null,
+    FLASHCARD_SERVICE_URL:null,
+    MCQ_SERVICE_URL:null,
 
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     GROQ_API_KEY: process.env.GROQ_API_KEY,
