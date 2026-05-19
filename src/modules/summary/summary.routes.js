@@ -3,6 +3,7 @@ import { authenticate } from '../../middleware/authenticate.js';
 import {
     generateSummaryController,
     getSummaryController,
+    exportSummaryPdfController,
 } from './summary.controller.js';
 
 const router = Router({ mergeParams: true });
@@ -11,5 +12,6 @@ router.use(authenticate);
 
 router.post('/', generateSummaryController);
 router.get('/', getSummaryController);
+router.get('/export', exportSummaryPdfController);
 
 export default router;

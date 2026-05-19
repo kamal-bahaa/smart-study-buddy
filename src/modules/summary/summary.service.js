@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import PDFDocument from 'pdfkit';
 import prisma from '../../prisma/client.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { env } from '../../config/env.js';
@@ -31,7 +32,6 @@ Rules:
 - Do NOT use JSON or code blocks.
 - Do NOT be vague — every sentence must add value.`;
 
-
 const parseMarkdown = (markdown) => {
     const extract = (section) => {
         const regex = new RegExp(`## ${section}\\n([\\s\\S]*?)(?=\\n## |$)`);
@@ -55,7 +55,6 @@ const parseMarkdown = (markdown) => {
     };
 };
 
-
 const formatSummary = (summary) => {
     const parsed = parseMarkdown(summary.content);
     return {
@@ -67,7 +66,6 @@ const formatSummary = (summary) => {
         createdAt: summary.createdAt,
     };
 };
-
 
 export const generateSummary = async (pdfId, userId) => {
     const document = await prisma.pdfDocument.findUnique({
@@ -94,7 +92,7 @@ export const generateSummary = async (pdfId, userId) => {
                 { role: 'system', content: SYSTEM_PROMPT },
                 { role: 'user', content: `Lecture content:\n${document.extractedText}` },
             ],
-            temperature: 0.3,  
+            temperature: 0.3,
             max_tokens: 2048,
         });
 
@@ -114,7 +112,6 @@ export const generateSummary = async (pdfId, userId) => {
     const { extractedText: _, userId: __, ...metadata } = document;
     return { document: metadata, summary: formatSummary(summary) };
 };
-
 
 export const getSummary = async (pdfId, userId) => {
     const document = await prisma.pdfDocument.findUnique({
@@ -136,4 +133,96 @@ export const getSummary = async (pdfId, userId) => {
         document: { id: document.id, fileName: document.fileName },
         summary: summary ? formatSummary(summary) : null,
     };
+};
+
+export const exportSummaryAsPdf = async (pdfId, userId) => {
+    const document = await prisma.pdfDocument.findUnique({
+        where: { id: pdfId },
+        select: { id: true, fileName: true, userId: true },
+    });
+
+    if (!document || document.userId !== userId) {
+        throw ApiError.notFound('Document not found');
+    }
+
+    const summary = await prisma.summary.findFirst({
+        where: { pdfId },
+        select: { id: true, content: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+    });
+
+    if (!summary) throw ApiError.notFound('No summary found. Generate one first.');
+
+    const parsed = parseMarkdown(summary.content);
+    const doc = new PDFDocument({ margin: 50 });
+    const chunks = [];
+
+    doc.on('data', (chunk) => chunks.push(chunk));
+
+    return new Promise((resolve, reject) => {
+        doc.on('end', () => resolve({ buffer: Buffer.concat(chunks), fileName: document.fileName }));
+        doc.on('error', reject);
+
+        // ── Title ──
+        doc.fontSize(22).font('Helvetica-Bold').fillColor('#1a1a1a')
+            .text('Summary', { align: 'center' });
+        doc.moveDown(0.4);
+        doc.fontSize(10).font('Helvetica').fillColor('#777777')
+            .text(document.fileName, { align: 'center' });
+        doc.moveDown(0.3);
+        doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#cccccc').lineWidth(1).stroke();
+        doc.moveDown(1.2);
+
+        // ── Section header helper ──
+        const sectionHeader = (title) => {
+            doc.fontSize(13).font('Helvetica-Bold').fillColor('#2c3e50').text(title);
+            doc.moveDown(0.4);
+        };
+
+        // ── Inline bold helper ──
+        const renderInlineBold = (text) => {
+            const parts = text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+            parts.forEach((part, i) => {
+                const isBold = /^\*\*[^*]+\*\*$/.test(part);
+                const content = isBold ? part.slice(2, -2) : part;
+                if (!content) return;
+                const isLast = i === parts.length - 1;
+                doc.font(isBold ? 'Helvetica-Bold' : 'Helvetica')
+                    .fontSize(11)
+                    .fillColor('#2c2c2c')
+                    .text(content, { continued: !isLast });
+            });
+        };
+
+        // ── Main Topic ──
+        sectionHeader('Main Topic');
+        doc.fontSize(11).font('Helvetica').fillColor('#2c2c2c').lineGap(3)
+            .text(parsed.mainTopic);
+        doc.moveDown(1);
+
+        // ── Key Concepts ──
+        sectionHeader('Key Concepts');
+        parsed.keyConcepts.forEach((concept) => {
+            doc.fontSize(11).font('Helvetica').fillColor('#2c2c2c')
+                .text('• ', { continued: true });
+            renderInlineBold(concept);
+            doc.moveDown(0.8);
+        });
+        doc.moveDown(0.5);
+
+        // ── Important Details ──
+        sectionHeader('Important Details');
+        parsed.importantDetails.forEach((detail) => {
+            doc.fontSize(11).font('Helvetica').fillColor('#2c2c2c')
+                .text(`• ${detail}`, { lineGap: 4, paragraphGap: 6 });
+        });
+        doc.moveDown(0.7);
+
+        // ── Conclusion ──
+        sectionHeader('Conclusion');
+        doc.fontSize(11).font('Helvetica').fillColor('#2c2c2c').lineGap(4)
+            .text(parsed.conclusion);
+
+        doc.end();
+    });
 };

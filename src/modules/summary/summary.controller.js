@@ -1,4 +1,4 @@
-import { generateSummary, getSummary } from './summary.service.js';
+import { generateSummary, getSummary, exportSummaryAsPdf } from './summary.service.js';
 import { sendSuccess } from '../../utils/ApiResponse.js';
 import { ApiError } from '../../utils/ApiError.js';
 
@@ -8,7 +8,6 @@ const parseId = (raw) => {
     return id;
 };
 
-// POST /api/pdfs/:id/summary
 export const generateSummaryController = async (req, res, next) => {
     try {
         const result = await generateSummary(parseId(req.params.id), req.user.userId);
@@ -18,11 +17,25 @@ export const generateSummaryController = async (req, res, next) => {
     }
 };
 
-// GET /api/pdfs/:id/summary
 export const getSummaryController = async (req, res, next) => {
     try {
         const result = await getSummary(parseId(req.params.id), req.user.userId);
         return sendSuccess(res, 200, 'Summary retrieved successfully', result);
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const exportSummaryPdfController = async (req, res, next) => {
+    try {
+        const { buffer, fileName } = await exportSummaryAsPdf(
+            parseId(req.params.id),
+            req.user.userId,
+        );
+        const exportName = fileName.replace(/\.pdf$/i, '') + '_summary.pdf';
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${exportName}"`);
+        res.send(buffer);
     } catch (err) {
         next(err);
     }
