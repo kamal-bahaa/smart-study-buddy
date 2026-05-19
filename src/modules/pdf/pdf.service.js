@@ -1,11 +1,11 @@
 import axios from 'axios';
 import FormData from 'form-data';
+import crypto from 'crypto';
 import prisma from '../../prisma/client.js';
 import { ApiError } from '../../utils/ApiError.js';
 
 const AI_SERVICE_URL = 'http://localhost:8000/extract';
 
-// ─── Shared select ────────────────────────────────────────────────────────────
 const METADATA_SELECT = {
     id: true,
     fileName: true,
@@ -13,10 +13,19 @@ const METADATA_SELECT = {
     updatedAt: true,
 };
 
-// ─── Upload & persist ─────────────────────────────────────────────────────────
-
 export const processUploadedPdf = async (file, userId) => {
     if (!file) throw ApiError.badRequest('No PDF file provided');
+
+    const hash = crypto.createHash('sha256').update(file.buffer).digest('hex');
+
+    const existing = await prisma.pdfDocument.findFirst({
+        where: { hash, userId },
+        select: { ...METADATA_SELECT, fileName: true },
+    });
+
+    if (existing) {
+        throw ApiError.conflict(`This PDF was already uploaded as "${existing.fileName}"`);
+    }
 
     const form = new FormData();
     form.append('file', file.buffer, {
@@ -34,9 +43,7 @@ export const processUploadedPdf = async (file, userId) => {
     }
 
     if (!aiResponse.data?.success) {
-        throw ApiError.internal(
-            aiResponse.data?.message ?? 'AI service failed to extract text'
-        );
+        throw ApiError.internal(aiResponse.data?.message ?? 'AI service failed to extract text');
     }
 
     try {
@@ -44,6 +51,7 @@ export const processUploadedPdf = async (file, userId) => {
             data: {
                 fileName: file.originalname,
                 extractedText: aiResponse.data.text,
+                hash,
                 userId,
             },
             select: METADATA_SELECT,
@@ -53,8 +61,6 @@ export const processUploadedPdf = async (file, userId) => {
     }
 };
 
-// ─── List all documents for a user ───────────────────────────────────────────
-
 export const getUserDocuments = async (userId) => {
     return prisma.pdfDocument.findMany({
         where: { userId },
@@ -63,44 +69,28 @@ export const getUserDocuments = async (userId) => {
     });
 };
 
-// ─── Get single document with full details ────────────────────────────────────
-
 export const getDocumentById = async (id, userId) => {
     const document = await prisma.pdfDocument.findUnique({
         where: { id },
         select: {
             ...METADATA_SELECT,
             userId: true,
-
             flashcards: {
-                select: {
-                    id: true,
-                    front: true,
-                    back: true,
-                    difficulty: true,
-                    createdAt: true,
-                },
+                select: { id: true, front: true, back: true, difficulty: true, createdAt: true },
                 orderBy: { id: 'asc' },
             },
-
             quizzes: {
                 select: {
                     id: true,
                     title: true,
                     createdAt: true,
                     questions: {
-                        select: {
-                            id: true,
-                            text: true,
-                            options: true,
-                            correctAnswer: true,
-                        },
+                        select: { id: true, text: true, options: true, correctAnswer: true },
                     },
                 },
                 orderBy: { createdAt: 'desc' },
                 take: 1,
             },
-
             summaries: {
                 select: { id: true, content: true, createdAt: true },
                 orderBy: { createdAt: 'desc' },
@@ -132,15 +122,10 @@ export const getDocumentById = async (id, userId) => {
     };
 };
 
-
-
 export const getDocumentText = async (id, userId) => {
     const document = await prisma.pdfDocument.findUnique({
         where: { id },
-        select: {
-            userId: true,
-            extractedText: true,
-        },
+        select: { userId: true, extractedText: true },
     });
 
     if (!document || document.userId !== userId) {
@@ -149,8 +134,6 @@ export const getDocumentText = async (id, userId) => {
 
     return { extractedText: document.extractedText };
 };
-
-// ─── Delete document ─────────────────────────────────────
 
 export const deleteDocument = async (id, userId) => {
     const document = await prisma.pdfDocument.findUnique({

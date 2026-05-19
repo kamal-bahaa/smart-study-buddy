@@ -41,6 +41,8 @@ model PdfDocument {
   flashcards    Flashcard[]
   quizzes       Quiz[]
 
+  hash  String?
+  
   @@index([userId])
   @@index([createdAt])
 }
