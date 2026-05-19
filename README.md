@@ -186,8 +186,8 @@ Body: multipart/form-data  →  file: <PDF>
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/smart-study-buddy-backend.git
-cd smart-study-buddy-backend
+git clone https://github.com/your-username/smart-study-buddy.git
+cd smart-study-buddy
 
 # 2. Install dependencies
 npm install
