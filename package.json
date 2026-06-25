@@ -4,17 +4,26 @@
   "description": "",
   "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "concurrently \"npm run ai\" \"npm run server\" \"npm run tunnel\"",
-    "server": "nodemon src/server.js",
-    "dev": "nodemon src/server.js",
-    "ai": "cd ai-service && start.bat",
-    "tunnel": "ngrok http 3000",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio",
-    "db:generate": "prisma generate"
-  },
+  "test": "echo \"Error: no test specified\" && exit 1",
+
+  "start": "node src/server.js",
+
+  "server": "nodemon src/server.js",
+
+  "dev": "concurrently \"npm run ai\" \"npm run server\" \"npm run tunnel\"",
+
+  "ai": "cd ai-service && start.bat",
+
+  "tunnel": "ngrok http 3000",
+
+  "db:migrate": "prisma migrate dev",
+
+  "db:push": "prisma db push",
+
+  "db:studio": "prisma studio",
+
+  "db:generate": "prisma generate"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
