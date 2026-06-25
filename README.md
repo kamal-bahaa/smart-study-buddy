@@ -40,29 +40,16 @@ All flashcards and MCQs are delivered via **Server-Sent Events (SSE)** so the us
 ### Key Design Decisions
 
 - **Docker Compose** runs 3 services: Node.js API + PostgreSQL + Python extraction — one command starts everything
-- **Colab AI models** load LoRA adapters from Hugging Face Hub — no Google Drive needed
+- **Colab AI models** load LoRA adapters from Hugging Face Hub [Hugging Face Hub](https://huggingface.co/Kemoooooz/smart-study-buddy-ai)
 - **ngrok static domain** keeps the backend URL stable between sessions
 - **Service Registry** — Colab self-registers its ngrok URL in the backend at startup via `POST /api/internal/register-service`
 - **SSE streaming** — flashcards and MCQs stream to Flutter progressively as they are generated
 
 ### Core Pipelines
 
-**PDF Text Extraction**
-```
-PDF Upload → SHA-256 Hash Check → PyMuPDF → Groq (cleaning) → PostgreSQL
-```
+![Core Pipelines](assets/Core Pipelines.png)
 
-**Flashcard Generation**
-```
-PDF Text → Node.js chunks (2000 chars) → Fine-tuned LLaMA-3-8B → SSE Stream → Flutter
-```
 
-**MCQ Generation**
-```
-PDF Text → Node.js → Base LLaMA-3-8B Instruct → SSE Stream → Flutter
-```
-
----
 
 ## Tech Stack
 
