@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import prisma from '../../prisma/client.js';
 import { ApiError } from '../../utils/ApiError.js';
 
-const AI_SERVICE_URL = 'http://localhost:8000/extract';
+const AI_SERVICE_URL = process.env.AI_EXTRACT_URL || 'http://localhost:8000/extract';
 
 const METADATA_SELECT = {
     id: true,
