@@ -47,7 +47,7 @@ All flashcards and MCQs are delivered via **Server-Sent Events (SSE)** so the us
 
 ### Core Pipelines
 
-![Core-Pipelines](assets/Core Pipelines.png)
+![Core-Pipelines](assets/Core-Pipelines.png)
 
 
 
