@@ -5,12 +5,34 @@ import { ApiError } from '../../utils/ApiError.js';
 
 const groq = new Groq({ apiKey: env.GROQ_API_KEY });
 
+const LANG_MAP = {
+    ar: 'Arabic',
+    fr: 'French',
+    de: 'German',
+    es: 'Spanish',
+    it: 'Italian',
+    tr: 'Turkish',
+    zh: 'Chinese',
+    ja: 'Japanese',
+    pt: 'Portuguese',
+    ru: 'Russian',
+    ko: 'Korean',
+    nl: 'Dutch',
+    pl: 'Polish',
+    sv: 'Swedish',
+    hi: 'Hindi',
+};
+
 export const translateController = async (req, res, next) => {
     try {
-        const { text } = req.body;
+        const { text, targetLang } = req.body;
 
         if (!text || typeof text !== 'string' || text.trim().length === 0) {
             throw ApiError.badRequest('text field is required');
+        }
+
+        if (!targetLang || typeof targetLang !== 'string') {
+            throw ApiError.badRequest('targetLang field is required');
         }
 
         const cleanText = text.trim().replace(/\s+/g, ' ');
@@ -19,13 +41,15 @@ export const translateController = async (req, res, next) => {
             throw ApiError.badRequest('text must be 5000 characters or less');
         }
 
+        const langName = LANG_MAP[targetLang.toLowerCase()] ?? targetLang;
+
         const response = await groq.chat.completions.create({
             model: 'llama-3.3-70b-versatile',
             messages: [
                 {
                     role: 'system',
                     content:
-                        'You are a professional translator. Translate the given text to Arabic. ' +
+                        `You are a professional translator. Translate the given text to ${langName}. ` +
                         'Return ONLY the translated text — no explanations, no notes, no original text.',
                 },
                 {
@@ -42,7 +66,7 @@ export const translateController = async (req, res, next) => {
         return sendSuccess(res, 200, 'Text translated successfully', {
             original: cleanText,
             translated,
-            targetLang: 'ar',
+            targetLang,
         });
 
     } catch (err) {
