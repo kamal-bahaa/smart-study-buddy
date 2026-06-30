@@ -18,6 +18,25 @@
 
 ---
 
+## Try It Out
+
+### 1. Run the AI Service (Colab)
+> ⚠️ Required first — the app's AI features (flashcards, MCQs) won't work without this running.
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](COLAB_LINK_HERE)
+
+Open the notebook → Run All. You'll know it's ready when you see:
+```
+INFO:     Uvicorn running on http://0.0.0.0:8000
+```
+
+### 2. Download the App
+| Platform | Link |
+|---|---|
+| Mobile (Android) | [Download](https://drive.google.com/drive/folders/1uK1NRSc05UblOUeD_8bwBeVsUf8q621I?usp=drive_link) |
+
+---
+
 ## Overview
 
 Smart Study Buddy is an AI-powered graduation project that helps students study more effectively. Given a lecture PDF, the system automatically generates:
@@ -162,25 +181,6 @@ Body: multipart/form-data → file: <PDF>
 ### Summary & Translation — Groq API
 
 Direct calls from Node.js to **Groq `llama-3.3-70b-versatile`**. Summary uses a structured markdown prompt parsed into sections (main topic, key concepts, important details, conclusion). Translation supports up to 5000 characters and returns Arabic text only.
-
----
-
-## Try It Out
-
-### 1. Run the AI Service (Colab)
-> ⚠️ Required first — the app's AI features (flashcards, MCQs) won't work without this running.
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](COLAB_LINK_HERE)
-
-Open the notebook → Run All. You'll know it's ready when you see:
-```
-INFO:     Uvicorn running on http://0.0.0.0:8000
-```
-
-### 2. Download the App
-| Platform | Link |
-|---|---|
-| Mobile | [Download](https://drive.google.com/drive/folders/1uK1NRSc05UblOUeD_8bwBeVsUf8q621I?usp=drive_link) |
 
 ---
 
