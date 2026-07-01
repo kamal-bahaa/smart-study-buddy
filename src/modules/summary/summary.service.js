@@ -4,7 +4,7 @@ import prisma from '../../prisma/client.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { env } from '../../config/env.js';
 
-const groq = new Groq({ apiKey: env.GROQ_API_KEY });
+const groq = new Groq({ apiKey: env.GROQ_API_KEY, fetch: fetch });
 
 const SYSTEM_PROMPT = `You are an expert academic assistant helping university students deeply understand lecture material.
 
