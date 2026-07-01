@@ -3,7 +3,7 @@ import { env } from '../../config/env.js';
 import { sendSuccess } from '../../utils/ApiResponse.js';
 import { ApiError } from '../../utils/ApiError.js';
 
-const groq = new Groq({ apiKey: env.GROQ_API_KEY });
+const groq = new Groq({ apiKey: env.GROQ_API_KEY, fetch: fetch });
 
 const LANG_MAP = {
     ar: 'Arabic',
